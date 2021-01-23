@@ -1,8 +1,8 @@
   
 /*
- * Import URL: https://raw.githubusercontent.com/HubitatCommunity/??/master/??-Driver.groovy"
+ * Import URL: https://raw.githubusercontent.com/JasperVanLeeuwen/WeerOnlineHubitatDriver/master/WeerOnline-Driver.groovy
  *
- *	Copyright 2019 Your Name
+ *	Copyright 2021 Jasper van Leeuwen
  *
  *	Licensed under the Apache License, Version 2.0 (the "License"); you may not
  *	use this file except in compliance with the License. You may obtain a copy
@@ -28,6 +28,7 @@ metadata
 	definition(name: "WeerOnline", namespace: "JasperVanLeeuwen", author: "JasperVanLeeuwen", importUrl: "https://raw.githubusercontent.com/JasperVanLeeuwen/WeerOnlineHubitatDriver/master/WeerOnline-Driver.groovy")
 	{
  		capability "Sensor"
+        attribute "visibleDistance", "number"
 	}
 
       preferences 
@@ -86,7 +87,20 @@ def installed()
 */
 def initialize()
 {
+    sendEvent(name:'visibleDistance', value:3)
+    //runEvery1Minute(updateState)
+    runIn(5,updateState)
 	log.trace "Msg: initialize ran"
+}
+
+/*
+   eventhandler that does things
+*/
+
+def updateState()
+{
+    log.trace "updateState ran"
+    sendEvent(name:'visibleDistance', value:device.currentValue("visibleDistance")+1)
 }
 
 
@@ -125,4 +139,4 @@ def off()
 }
 
 
-def getThisCopyright(){"&copy; 2019 Your Name "}
+def getThisCopyright(){"&copy; 2021 JasperVanLeeuwen "}
