@@ -27,7 +27,7 @@ metadata
 {
 	definition(name: "WeerOnline", namespace: "JasperVanLeeuwen", author: "JasperVanLeeuwen", importUrl: "https://raw.githubusercontent.com/JasperVanLeeuwen/WeerOnlineHubitatDriver/master/WeerOnline-Driver.groovy")
 	{
- 		capability "Switch"
+ 		capability "Sensor"
 	}
 
       preferences 
