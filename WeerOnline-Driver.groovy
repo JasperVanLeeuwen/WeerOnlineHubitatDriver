@@ -28,15 +28,18 @@ metadata
 	definition(name: "WeerOnline", namespace: "JasperVanLeeuwen", author: "JasperVanLeeuwen", importUrl: "https://raw.githubusercontent.com/JasperVanLeeuwen/WeerOnlineHubitatDriver/master/WeerOnline-Driver.groovy")
 	{
  		capability "Sensor"
+        capability "TemperatureMeasurement"
         attribute "visibleDistance", "number"
+        attribute "latestMessage", "string"
+        attribute "datetime", "string"
 	}
 
       preferences 
       {
-      
-
           //standard logging options
           input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
+          input name: "apikey", type: "text", title: "apikey", description: "Enter apikey from http://weerlive.nl/", required: true, defaultValue : "demo"
+          input name: "gpslocation", type: "text", title: "location", description: "Enter location, e.g. deg,deg or name", required: true,defaultValue: "Amsterdam"
       }
 }
 
@@ -48,17 +51,11 @@ metadata
 */
 def updated()
 {
-	initialize()
-	unschedule()
+    unschedule()
+	initialize()	
       if (debugOutput) runIn(1800,logsOff) //disable debug logs after 30 min
 	log.trace "Msg: updated ran"
 }
-
-
-
-
-
-
 
 /*
 
@@ -78,7 +75,14 @@ def installed()
 	log.trace "Msg: installed ran"
 }
 
-
+def updateState()
+{       
+    log.trace "http://weerlive.nl/api/json-data-10min.php?key=${apikey}&locatie=${gpslocation}"
+    Map requestParams = [ uri: "http://weerlive.nl/api/json-data-10min.php?key=${apikey}&locatie=${gpslocation}" , timeout: 20 ]
+    log.trace "Msg: weerOnlineResponseHandler async request"
+    asynchttpGet("weerOnlineResponseHandler",requestParams)
+    log.trace "updateState ran"
+}
 
 /*
 	initialize
@@ -87,56 +91,28 @@ def installed()
 */
 def initialize()
 {
-    sendEvent(name:'visibleDistance', value:3)
-    //runEvery1Minute(updateState)
-    runIn(5,updateState)
-	log.trace "Msg: initialize ran"
+    runIn(1,updateState)
+    runEvery15Minutes(updateState)    
+	log.trace "Msg: initialize ran"    
 }
 
 /*
    eventhandler that does things
 */
 
-def updateState()
-{
-    log.trace "updateState ran"
-    sendEvent(name:'visibleDistance', value:device.currentValue("visibleDistance")+1)
+void weerOnlineResponseHandler(resp, data) { 
+    log.trace "Msg: weerOnlineResponseHandler async response processing"
+    if(resp.getStatus() == 200 || resp.getStatus() == 207) {
+		Map weerResults = resp.getJson().results
+        sendEvent(name:'latestMessage', value: resp.data.toString())
+        sendEvent(name:'temperature', value: resp.getJson().liveweer[0].temp)
+        sendEvent(name:'visibleDistance', value: resp.getJson().liveweer[0].zicht)   
+        
+    }
+    else {
+        sendEvent(name:'latestMessage', value: "http response status: ${resp.getStatus()}")
+    }
+
 }
-
-
-/*
-	parse
-    
-	In a virtual world this should never be called.
-*/
-def parse(String description)
-{
-	log.trace "Msg: Description is $description"
-}
-
-/*
-	on
-    
-	Turns the device on.
-*/
-def on()
-{
-	// The server will update on/off status
-	log.trace "Msg: $description ON"
-	
-}
-
-
-/*
-	off
-    
-	Turns the device off.
-*/
-def off()
-{
-	// The server will update on/off status
-	log.trace "Msg: $description OFF"
-}
-
 
 def getThisCopyright(){"&copy; 2021 JasperVanLeeuwen "}
