@@ -1,4 +1,4 @@
-  
+
 /*
  * Import URL: https://raw.githubusercontent.com/JasperVanLeeuwen/WeerOnlineHubitatDriver/master/WeerOnline-Driver.groovy
  *
@@ -18,23 +18,21 @@
  *
  *
  */
- 	public static String version()      {  return "v???"  }
 
- 
+
 import groovy.transform.Field
 
-metadata 
+metadata
 {
 	definition(name: "WeerOnline", namespace: "JasperVanLeeuwen", author: "JasperVanLeeuwen", importUrl: "https://raw.githubusercontent.com/JasperVanLeeuwen/WeerOnlineHubitatDriver/master/WeerOnline-Driver.groovy")
 	{
- 	capability "Sensor"
-        capability "TemperatureMeasurement"
-        attribute "visibleDistance", "number"
-        attribute "latestMessage", "string"
-        attribute "datetime", "string"
+ 	capability "Sensor"  //report as generic sensor
+        capability "TemperatureMeasurement" //report as TemperatureMeasurement sensor, making temperature attribute available
+        attribute "visibleDistance", "number" //weeronline info
+        attribute "latestMessage", "string" //latest API response
 	}
 
-      preferences 
+      preferences
       {
           //standard logging options
           input name: "logEnable", type: "bool", title: "Enable debug logging", defaultValue: true
@@ -46,14 +44,14 @@ metadata
 
 /*
 	updated
-    
+
 	Doesn't do much other than call initialize().
 */
 def updated()
 {
     unschedule()
-	initialize()	
-      if (debugOutput) runIn(1800,logsOff) //disable debug logs after 30 min
+    initialize()
+    if (debugOutput) runIn(1800,logsOff) //disable debug logs after 30 min
 	log.trace "Msg: updated ran"
 }
 
@@ -66,7 +64,7 @@ def updated()
 
 /*
 	installed
-    
+
 	Doesn't do much other than call initialize().
 */
 def installed()
@@ -75,8 +73,11 @@ def installed()
 	log.trace "Msg: installed ran"
 }
 
+/*
+    create an asyn http request to obtain weather info
+ */
 def updateState()
-{       
+{
     log.trace "http://weerlive.nl/api/json-data-10min.php?key=${apikey}&locatie=${gpslocation}"
     Map requestParams = [ uri: "http://weerlive.nl/api/json-data-10min.php?key=${apikey}&locatie=${gpslocation}" , timeout: 20 ]
     log.trace "Msg: weerOnlineResponseHandler async request"
@@ -86,28 +87,27 @@ def updateState()
 
 /*
 	initialize
-    
+
 	Doesn't do anything.
 */
 def initialize()
 {
     runIn(1,updateState)
-    runEvery15Minutes(updateState)    
-	log.trace "Msg: initialize ran"    
+    runEvery15Minutes(updateState)
+	log.trace "Msg: initialize ran"
 }
 
 /*
-   eventhandler that does things
+   eventhandler that does things with the http response
 */
 
-void weerOnlineResponseHandler(resp, data) { 
+void weerOnlineResponseHandler(resp, data) {
     log.trace "Msg: weerOnlineResponseHandler async response processing"
     if(resp.getStatus() == 200 || resp.getStatus() == 207) {
-		Map weerResults = resp.getJson().results
         sendEvent(name:'latestMessage', value: resp.data.toString())
         sendEvent(name:'temperature', value: resp.getJson().liveweer[0].temp)
-        sendEvent(name:'visibleDistance', value: resp.getJson().liveweer[0].zicht)   
-        
+        sendEvent(name:'visibleDistance', value: resp.getJson().liveweer[0].zicht)
+
     }
     else {
         sendEvent(name:'latestMessage', value: "http response status: ${resp.getStatus()}")
